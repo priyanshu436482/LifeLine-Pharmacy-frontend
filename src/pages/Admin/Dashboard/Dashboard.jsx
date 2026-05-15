@@ -5,6 +5,7 @@ import Footer from '../../../components/Footer/Footer'
 import './Dashboard.css'
 
 export default function AdminDashboard() {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [image, setImage] = useState('')
@@ -17,17 +18,30 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin')
-    if (isAdmin !== 'true') {
+    const adminToken = localStorage.getItem('adminToken')
+
+    if (isAdmin !== 'true' || !adminToken) {
       navigate('/admin/login')
     } else {
       fetchProducts()
     }
   }, [navigate])
 
+  const handleUnauthorized = () => {
+    localStorage.removeItem('isAdmin')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminId')
+    navigate('/admin/login')
+  }
+
   const fetchProducts = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       const response = await fetch(`${apiUrl}/products`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch products')
+      }
+
       const data = await response.json()
       setProducts(data)
     } catch (err) {
@@ -38,15 +52,22 @@ export default function AdminDashboard() {
   const handleAddMedicine = async (e) => {
     e.preventDefault()
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`${apiUrl}/products`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`
         },
         body: JSON.stringify({ name, price: Number(price), image, slug, category })
       })
       const data = await response.json()
+
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
+
       if (data.success) {
         setMessage('Medicine added successfully!')
         setName('')
@@ -67,11 +88,20 @@ export default function AdminDashboard() {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this medicine?')) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+        const adminToken = localStorage.getItem('adminToken')
         const response = await fetch(`${apiUrl}/products/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${adminToken}`
+          }
         })
         const data = await response.json()
+
+        if (response.status === 401) {
+          handleUnauthorized()
+          return
+        }
+
         if (data.success) {
           setMessage('Medicine deleted successfully!')
           fetchProducts() // Refresh the list
@@ -86,6 +116,8 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('isAdmin')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminId')
     navigate('/admin/login')
   }
 

@@ -8,10 +8,14 @@ export default function AdminLogin() {
   const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    setError('')
+    setIsLoading(true)
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
       const response = await fetch(`${apiUrl}/admin/login`, {
@@ -24,12 +28,16 @@ export default function AdminLogin() {
       const data = await response.json()
       if (data.success) {
         localStorage.setItem('isAdmin', 'true')
+        localStorage.setItem('adminToken', data.token)
+        localStorage.setItem('adminId', data.adminId)
         navigate('/admin/dashboard')
       } else {
         setError(data.message)
       }
     } catch (err) {
       setError('Login failed. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -62,7 +70,9 @@ export default function AdminLogin() {
                 />
               </div>
               {error && <p className="error-message">{error}</p>}
-              <button type="submit" className="login-btn">Login</button>
+              <button type="submit" className="login-btn" disabled={isLoading}>
+                {isLoading ? 'Logging in...' : 'Login'}
+              </button>
             </form>
           </div>
         </div>
