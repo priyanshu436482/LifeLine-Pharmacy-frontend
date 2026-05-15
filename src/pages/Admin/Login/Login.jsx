@@ -25,17 +25,25 @@ export default function AdminLogin() {
         },
         body: JSON.stringify({ id, password })
       })
-      const data = await response.json()
-      if (data.success) {
+
+      let data
+      try {
+        data = await response.json()
+      } catch {
+        setError('Server error. Is the backend running? (npm run dev in project root)')
+        return
+      }
+
+      if (response.ok && data.success) {
         localStorage.setItem('isAdmin', 'true')
         localStorage.setItem('adminToken', data.token)
         localStorage.setItem('adminId', data.adminId)
         navigate('/admin/dashboard')
       } else {
-        setError(data.message)
+        setError(data.message || 'Invalid Admin ID or password')
       }
     } catch (err) {
-      setError('Login failed. Please try again.')
+      setError('Cannot reach server. Run: npm run dev (from project folder)')
     } finally {
       setIsLoading(false)
     }

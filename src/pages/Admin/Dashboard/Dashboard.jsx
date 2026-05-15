@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [slug, setSlug] = useState('')
   const [category, setCategory] = useState('medicines')
   const [products, setProducts] = useState([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -35,17 +36,31 @@ export default function AdminDashboard() {
   }
 
   const fetchProducts = async () => {
+    setIsLoadingProducts(true)
+    setError('')
+
     try {
       const response = await fetch(`${apiUrl}/products`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error('Failed to fetch products')
+        setProducts([])
+        setError(data.message || 'Could not load medicines. Is the backend running?')
+        return
       }
 
-      const data = await response.json()
-      setProducts(data)
+      if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        setProducts([])
+        setError('Unexpected response from server')
+      }
     } catch (err) {
       console.error('Error fetching products:', err)
+      setProducts([])
+      setError('Could not load medicines. Run npm run dev from the project folder.')
+    } finally {
+      setIsLoadingProducts(false)
     }
   }
 
@@ -191,8 +206,12 @@ export default function AdminDashboard() {
           <div className="manage-medicines-card">
             <h2 className="card-title">Manage Medicines</h2>
             <div className="products-list">
-              {products.length === 0 ? (
-                <p className="no-products">No medicines found in the database.</p>
+              {isLoadingProducts ? (
+                <p className="no-products">Loading medicines...</p>
+              ) : error && products.length === 0 ? (
+                <p className="error-message">{error}</p>
+              ) : products.length === 0 ? (
+                <p className="no-products">No medicines yet. Add one using the form above.</p>
               ) : (
                 <div className="table-responsive">
                   <table className="products-table">
