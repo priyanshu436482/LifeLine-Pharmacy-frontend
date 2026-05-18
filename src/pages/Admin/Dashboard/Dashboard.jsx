@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar/Navbar'
 import Footer from '../../../components/Footer/Footer'
+import { compressImageFile } from '../../../utils/compressImage'
 import './Dashboard.css'
 
 export default function AdminDashboard() {
@@ -14,7 +15,10 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(true)
   const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
+  const [listError, setListError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -37,7 +41,7 @@ export default function AdminDashboard() {
 
   const fetchProducts = async () => {
     setIsLoadingProducts(true)
-    setError('')
+    setListError('')
 
     try {
       const response = await fetch(`${apiUrl}/products`)
@@ -45,7 +49,7 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         setProducts([])
-        setError(data.message || 'Could not load medicines. Is the backend running?')
+        setListError(data.message || 'Could not load medicines. Is the backend running?')
         return
       }
 
@@ -53,36 +57,49 @@ export default function AdminDashboard() {
         setProducts(data)
       } else {
         setProducts([])
-        setError('Unexpected response from server')
+        setListError('Unexpected response from server')
       }
     } catch (err) {
       console.error('Error fetching products:', err)
       setProducts([])
-      setError('Could not load medicines. Run npm run dev from the project folder.')
+      setListError('Could not load medicines. Run npm run dev from the project folder.')
     } finally {
       setIsLoadingProducts(false)
     }
   }
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size should be less than 5MB')
-        return
-      }
-      
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImage(reader.result)
-        setError('')
-      }
-      reader.readAsDataURL(file)
+    if (!file) {
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError('Image size should be less than 5MB')
+      return
+    }
+
+    try {
+      const compressedImage = await compressImageFile(file)
+      setImage(compressedImage)
+      setFormError('')
+    } catch (err) {
+      setFormError(err.message || 'Could not process image')
     }
   }
 
   const handleAddMedicine = async (e) => {
     e.preventDefault()
+    setFormError('')
+    setMessage('')
+    setIsSubmitting(true)
+
+    if (!image) {
+      setFormError('Please upload a medicine image')
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`${apiUrl}/products`, {
@@ -93,56 +110,84 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({ name, price: Number(price), image, slug, category })
       })
-      const data = await response.json()
+
+      let data = {}
+      try {
+        data = await response.json()
+      } catch {
+        setFormError('Server error while adding medicine. Check that npm run dev is running.')
+        return
+      }
 
       if (response.status === 401) {
         handleUnauthorized()
         return
       }
 
-      if (data.success) {
+      if (response.ok && data.success) {
         setMessage('Medicine added successfully!')
         setName('')
         setPrice('')
         setImage('')
         setSlug('')
         setCategory('medicines')
-        setError('')
-        fetchProducts() // Refresh the list
+        fetchProducts()
       } else {
-        setError(data.message)
+        setFormError(data.message || 'Failed to add medicine')
       }
     } catch (err) {
-      setError('Failed to add medicine. Please try again.')
+      setFormError('Cannot reach server. Run npm run dev from the project folder.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleDeleteProduct = async (id) => {
-    if (window.confirm('Are you sure you want to delete this medicine?')) {
+    if (!id) {
+      setListError('Cannot delete this medicine because it is missing an ID.')
+      return
+    }
+
+    if (!window.confirm('Are you sure you want to delete this medicine?')) {
+      return
+    }
+
+    setDeletingId(id)
+    setListError('')
+    setMessage('')
+
+    try {
+      const adminToken = localStorage.getItem('adminToken')
+      const response = await fetch(`${apiUrl}/products/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
+      })
+
+      let data = {}
       try {
-        const adminToken = localStorage.getItem('adminToken')
-        const response = await fetch(`${apiUrl}/products/${id}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${adminToken}`
-          }
-        })
-        const data = await response.json()
-
-        if (response.status === 401) {
-          handleUnauthorized()
-          return
-        }
-
-        if (data.success) {
-          setMessage('Medicine deleted successfully!')
-          fetchProducts() // Refresh the list
-        } else {
-          setError(data.message)
-        }
-      } catch (err) {
-        setError('Failed to delete medicine.')
+        data = await response.json()
+      } catch {
+        setListError('Server error while deleting. Check that npm run dev is running.')
+        return
       }
+
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
+
+      if (response.ok && data.success) {
+        setMessage('Medicine deleted successfully!')
+        fetchProducts()
+      } else {
+        setListError(data.message || 'Failed to delete medicine')
+      }
+    } catch (err) {
+      setListError('Cannot reach server. Run npm run dev from the project folder.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -231,18 +276,23 @@ export default function AdminDashboard() {
                 </select>
               </div>
               {message && <p className="success-message">{message}</p>}
-              {error && <p className="error-message">{error}</p>}
-              <button type="submit" className="add-btn">Add Medicine</button>
+              {formError && <p className="error-message">{formError}</p>}
+              <button type="submit" className="add-btn" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding...' : 'Add Medicine'}
+              </button>
             </form>
           </div>
 
           <div className="manage-medicines-card">
             <h2 className="card-title">Manage Medicines</h2>
+            {listError && products.length > 0 && (
+              <p className="error-message">{listError}</p>
+            )}
             <div className="products-list">
               {isLoadingProducts ? (
                 <p className="no-products">Loading medicines...</p>
-              ) : error && products.length === 0 ? (
-                <p className="error-message">{error}</p>
+              ) : listError && products.length === 0 ? (
+                <p className="error-message">{listError}</p>
               ) : products.length === 0 ? (
                 <p className="no-products">No medicines yet. Add one using the form above.</p>
               ) : (
@@ -257,21 +307,25 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.map((product) => (
-                        <tr key={product._id}>
+                      {products.map((product) => {
+                        const productIdentifier = product._id || product.id || product.slug
+
+                        return (
+                        <tr key={productIdentifier}>
                           <td>{product.name}</td>
                           <td>₹{product.price}</td>
                           <td className="capitalize">{product.category}</td>
                           <td>
                             <button 
-                              onClick={() => handleDeleteProduct(product._id)} 
+                              onClick={() => handleDeleteProduct(productIdentifier)} 
                               className="delete-btn"
+                              disabled={!productIdentifier || deletingId === productIdentifier}
                             >
-                              Delete
+                              {deletingId === productIdentifier ? 'Deleting...' : 'Delete'}
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
