@@ -64,6 +64,23 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB')
+        return
+      }
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImage(reader.result)
+        setError('')
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleAddMedicine = async (e) => {
     e.preventDefault()
     try {
@@ -169,14 +186,30 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="form-group">
-                <label>Image URL</label>
+                <label>Medicine Image (Upload)</label>
                 <input
-                  type="text"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="Enter image URL"
-                  required
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  required={!image}
+                  className="file-input"
                 />
+                {image && (
+                  <div className="image-preview-container" style={{ marginTop: '10px' }}>
+                    <img 
+                      src={image} 
+                      alt="Preview" 
+                      style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setImage('')} 
+                      style={{ display: 'block', marginTop: '8px', color: '#ff4d4f', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+                    >
+                      Remove Image
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label>Slug (Unique identifier)</label>
