@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { getApiUrl } from '../../utils/apiUrl'
 import Navbar from '../../components/Navbar/Navbar'
 import Footer from '../../components/Footer/Footer'
 import HeroSection from '../../components/HeroSection/HeroSection'
@@ -13,7 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const { setSelectedCategory, setSearchQuery } = useSearch()
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const apiUrl = getApiUrl()
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {

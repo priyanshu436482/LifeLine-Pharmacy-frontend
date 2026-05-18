@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar/Navbar'
 import Footer from '../../../components/Footer/Footer'
 import { compressImageFile } from '../../../utils/compressImage'
+import { getApiUrl } from '../../../utils/apiUrl'
 import './Dashboard.css'
 
 export default function AdminDashboard() {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const apiUrl = getApiUrl()
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [image, setImage] = useState('')

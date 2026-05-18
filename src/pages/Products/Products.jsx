@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '../../utils/apiUrl'
 import Navbar from '../../components/Navbar/Navbar'
 import Footer from '../../components/Footer/Footer'
 import ProductCard from '../../components/ProductCard/ProductCard'
@@ -11,7 +12,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory } = useSearch()
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const apiUrl = getApiUrl()
 
   useEffect(() => {
     const fetchProducts = async () => {

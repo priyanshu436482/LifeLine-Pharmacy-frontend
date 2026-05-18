@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar/Navbar'
 import Footer from '../../../components/Footer/Footer'
+import { getApiUrl } from '../../../utils/apiUrl'
 import './Login.css'
 
 export default function AdminLogin() {
@@ -17,8 +18,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
-      const response = await fetch(`${apiUrl}/admin/login`, {
+      const response = await fetch(`${getApiUrl()}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
