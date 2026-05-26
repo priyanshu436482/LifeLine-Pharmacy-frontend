@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar/Navbar'
 import Footer from '../../../components/Footer/Footer'
+import ConfirmModal from '../../../components/ConfirmModal/ConfirmModal'
+import EditModal from '../../../components/EditModal/EditModal'
 import { compressImageFile } from '../../../utils/compressImage'
 import { getApiUrl } from '../../../utils/apiUrl'
 import './Dashboard.css'
+
+const ITEMS_PER_PAGE = 10
 
 export default function AdminDashboard() {
   const apiUrl = getApiUrl()
@@ -20,7 +24,16 @@ export default function AdminDashboard() {
   const [listError, setListError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null })
+  const [editingProduct, setEditingProduct] = useState(null)
   const navigate = useNavigate()
+
+  const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE))
+  const paginatedProducts = products.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin')
@@ -32,6 +45,10 @@ export default function AdminDashboard() {
       fetchProducts()
     }
   }, [navigate])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [products.length])
 
   const handleUnauthorized = () => {
     localStorage.removeItem('isAdmin')
@@ -149,10 +166,7 @@ export default function AdminDashboard() {
       return
     }
 
-    if (!window.confirm('Are you sure you want to delete this medicine?')) {
-      return
-    }
-
+    setConfirmDelete({ isOpen: false, id: null })
     setDeletingId(id)
     setListError('')
     setMessage('')
@@ -192,11 +206,66 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleEditProduct = (product) => {
+    setEditingProduct(product)
+  }
+
+  const handleSaveEdit = async (updates) => {
+    const adminToken = localStorage.getItem('adminToken')
+    const identifier = editingProduct._id || editingProduct.id || editingProduct.slug
+
+    const response = await fetch(`${apiUrl}/products/${encodeURIComponent(identifier)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`
+      },
+      body: JSON.stringify(updates)
+    })
+
+    const data = await response.json()
+
+    if (response.status === 401) {
+      handleUnauthorized()
+      return
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update medicine')
+    }
+
+    setEditingProduct(null)
+    setMessage('Medicine updated successfully!')
+    fetchProducts()
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('isAdmin')
     localStorage.removeItem('adminToken')
     localStorage.removeItem('adminId')
     navigate('/admin/login')
+  }
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisible = 5
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
+    let end = Math.min(totalPages, start + maxVisible - 1)
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1)
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i)
+    }
+    return pages
   }
 
   return (
@@ -285,7 +354,12 @@ export default function AdminDashboard() {
           </div>
 
           <div className="manage-medicines-card">
-            <h2 className="card-title">Manage Medicines</h2>
+            <h2 className="card-title">
+              Manage Medicines
+              {products.length > 0 && (
+                <span className="product-count">{products.length} total</span>
+              )}
+            </h2>
             {listError && products.length > 0 && (
               <p className="error-message">{listError}</p>
             )}
@@ -297,45 +371,98 @@ export default function AdminDashboard() {
               ) : products.length === 0 ? (
                 <p className="no-products">No medicines yet. Add one using the form above.</p>
               ) : (
-                <div className="table-responsive">
-                  <table className="products-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Price</th>
-                        <th>Category</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.map((product) => {
-                        const productIdentifier = product._id || product.id || product.slug
-
-                        return (
-                        <tr key={productIdentifier}>
-                          <td>{product.name}</td>
-                          <td>₹{product.price}</td>
-                          <td className="capitalize">{product.category}</td>
-                          <td>
-                            <button 
-                              onClick={() => handleDeleteProduct(productIdentifier)} 
-                              className="delete-btn"
-                              disabled={!productIdentifier || deletingId === productIdentifier}
-                            >
-                              {deletingId === productIdentifier ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </td>
+                <>
+                  <div className="table-responsive">
+                    <table className="products-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Price</th>
+                          <th>Category</th>
+                          <th>Actions</th>
                         </tr>
-                      )})}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {paginatedProducts.map((product) => {
+                          const productIdentifier = product._id || product.id || product.slug
+
+                          return (
+                          <tr key={productIdentifier}>
+                            <td>{product.name}</td>
+                            <td>₹{product.price}</td>
+                            <td className="capitalize">{product.category}</td>
+                            <td className="actions-cell">
+                              <button 
+                                onClick={() => handleEditProduct(product)} 
+                                className="edit-btn"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => setConfirmDelete({ isOpen: true, id: productIdentifier })} 
+                                className="delete-btn"
+                                disabled={!productIdentifier || deletingId === productIdentifier}
+                              >
+                                {deletingId === productIdentifier ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </td>
+                          </tr>
+                        )})}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="pagination">
+                      <button
+                        className="page-btn"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        &laquo; Prev
+                      </button>
+                      {getPageNumbers().map((page) => (
+                        <button
+                          key={page}
+                          className={`page-btn ${page === currentPage ? 'page-btn-active' : ''}`}
+                          onClick={() => goToPage(page)}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        className="page-btn"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next &raquo;
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
       </main>
       <Footer />
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="Delete Medicine"
+        message="Are you sure you want to delete this medicine? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={() => handleDeleteProduct(confirmDelete.id)}
+        onCancel={() => setConfirmDelete({ isOpen: false, id: null })}
+        isLoading={deletingId === confirmDelete.id}
+      />
+
+      <EditModal
+        isOpen={!!editingProduct}
+        product={editingProduct}
+        onSave={handleSaveEdit}
+        onCancel={() => setEditingProduct(null)}
+      />
     </div>
   )
 }

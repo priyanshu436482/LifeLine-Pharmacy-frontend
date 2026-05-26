@@ -121,6 +121,14 @@
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .products-table th {
@@ -135,6 +143,21 @@
 
 .capitalize {
   text-transform: capitalize;
+}
+
+.edit-btn {
+  padding: 6px 14px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: #0052a3;
 }
 
 .delete-btn {
@@ -152,10 +175,59 @@
   background-color: #cc0000;
 }
 
+.product-count {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #999;
+  margin-left: 10px;
+}
+
 .no-products {
   text-align: center;
   color: #777;
   padding: 20px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-btn-active {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+.page-btn-active:hover {
+  background: #0052a3 !important;
+  border-color: #0052a3 !important;
 }
 
 @media (max-width: 768px) {
@@ -185,14 +257,29 @@
     font-size: 16px;
   }
 
+  .edit-btn,
   .delete-btn {
     padding: 10px 16px;
     width: 100%;
+  }
+
+  .actions-cell {
+    flex-direction: column;
+    gap: 6px;
   }
 
   .products-table th,
   .products-table td {
     padding: 10px 8px;
     font-size: 0.9rem;
+  }
+
+  .pagination {
+    gap: 4px;
+  }
+
+  .page-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
   }
 }

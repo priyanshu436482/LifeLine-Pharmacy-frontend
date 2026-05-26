@@ -1,0 +1,64 @@
+.edit-modal {
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.edit-modal .modal-title {
+  margin-bottom: 20px;
+}
+
+.edit-modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-modal-form .form-group {
+  margin-bottom: 16px;
+}
+
+.edit-modal-form .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.edit-modal-form .form-group input,
+.edit-modal-form .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.edit-image-preview {
+  margin-top: 10px;
+}
+
+.edit-image-preview img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  display: block;
+}
+
+.edit-remove-image {
+  margin-top: 6px;
+  color: #d9534f;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0;
+}
+
+.edit-remove-image:hover {
+  text-decoration: underline;
+}
