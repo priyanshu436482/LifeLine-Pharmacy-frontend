@@ -40,7 +40,7 @@ export default function Cart() {
                 <div key={item.id} className="cart-item">
                   <div className="cart-item__image-wrap">
                     <img
-                      src={item.image}
+                      src={item.image || item.imageUrl}
                       alt={item.name}
                       className="cart-item__image"
                     />

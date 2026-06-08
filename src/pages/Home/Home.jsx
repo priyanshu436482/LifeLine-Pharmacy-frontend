@@ -22,7 +22,8 @@ export default function Home() {
         const response = await fetch(`${apiUrl}/products`)
         if (response.ok) {
           const data = await response.json()
-          setFeaturedProducts(data.slice(0, 8))
+          const productsArray = data.data || data
+          setFeaturedProducts(productsArray.slice(0, 8))
         } else {
           console.error('Failed to fetch products')
           setFeaturedProducts(staticProducts.slice(0, 8)) // Fallback

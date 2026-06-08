@@ -20,7 +20,7 @@ export default function Products() {
         const response = await fetch(`${apiUrl}/products`)
         if (response.ok) {
           const data = await response.json()
-          setProducts(data)
+          setProducts(data.data || data)
         } else {
           console.error('Failed to fetch products')
           setProducts(staticProducts) // Fallback to static

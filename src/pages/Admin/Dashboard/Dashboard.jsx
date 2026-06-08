@@ -72,8 +72,9 @@ export default function AdminDashboard() {
         return
       }
 
-      if (Array.isArray(data)) {
-        setProducts(data)
+      const productsArray = data.data || data
+      if (Array.isArray(productsArray)) {
+        setProducts(productsArray)
       } else {
         setProducts([])
         setListError('Unexpected response from server')
@@ -382,7 +383,7 @@ export default function AdminDashboard() {
                               <td className="image-cell">
                                 <div className="product-image-container">
                                   <img 
-                                    src={product.image || 'https://via.placeholder.com/50'} 
+                                    src={product.image || product.imageUrl || 'https://via.placeholder.com/50'} 
                                     alt={product.name} 
                                     loading="lazy"
                                   />

@@ -4,12 +4,13 @@ import './ProductCard.css'
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart()
-  const { id, _id, name, price, image, slug } = product
+  const { id, _id, name, price, image, imageUrl, slug } = product
   const productId = id || _id
+  const productImage = image || imageUrl
 
   const handleAddToCart = (e) => {
     e.preventDefault()
-    addToCart({ id: productId, name, price, image, slug })
+    addToCart({ id: productId, name, price, image: productImage, slug })
   }
 
   return (
@@ -17,7 +18,7 @@ export default function ProductCard({ product }) {
       <Link to={`/products#${slug || productId}`} className="product-card__link">
         <div className="product-card__image-wrap">
           <img
-            src={image}
+            src={productImage}
             alt={name}
             className="product-card__image"
             loading="lazy"

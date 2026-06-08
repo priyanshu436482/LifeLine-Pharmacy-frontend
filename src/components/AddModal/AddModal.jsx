@@ -8,6 +8,7 @@ export default function AddModal({ isOpen, onSave, onCancel }) {
   const [slug, setSlug] = useState('')
   const [category, setCategory] = useState('medicines')
   const [image, setImage] = useState('')
+  const [stock, setStock] = useState('100')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -48,7 +49,8 @@ export default function AddModal({ isOpen, onSave, onCancel }) {
         price: Number(price),
         slug,
         category,
-        image
+        image,
+        stock: Number(stock)
       })
       // Reset form on success
       setName('')
@@ -56,6 +58,7 @@ export default function AddModal({ isOpen, onSave, onCancel }) {
       setSlug('')
       setCategory('medicines')
       setImage('')
+      setStock('100')
     } catch (err) {
       setError(err.message || 'Failed to add medicine')
     } finally {
@@ -89,6 +92,16 @@ export default function AddModal({ isOpen, onSave, onCancel }) {
                 value={price} 
                 onChange={(e) => setPrice(e.target.value)} 
                 placeholder="e.g. 85" 
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label>Initial Stock</label>
+              <input 
+                type="number" 
+                value={stock} 
+                onChange={(e) => setStock(e.target.value)} 
+                placeholder="e.g. 100" 
                 required 
               />
             </div>

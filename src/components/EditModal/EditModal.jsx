@@ -18,7 +18,7 @@ export default function EditModal({ isOpen, product, onSave, onCancel }) {
       setPrice(String(product.price ?? ''))
       setSlug(product.slug || '')
       setCategory(product.category || 'medicines')
-      setImage(product.image || '')
+      setImage(product.image || product.imageUrl || '')
       setImageFile(null)
       setError('')
     }
