@@ -16,17 +16,14 @@ export default function AdminDashboard() {
   const [listError, setListError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalProducts, setTotalProducts] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null })
   const [editingProduct, setEditingProduct] = useState(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('products') // 'dashboard' or 'products'
   const navigate = useNavigate()
 
-  const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE))
-  const paginatedProducts = products.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
+  const totalPages = Math.max(1, Math.ceil(totalProducts / ITEMS_PER_PAGE))
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin')
@@ -34,14 +31,16 @@ export default function AdminDashboard() {
 
     if (isAdmin !== 'true' || !adminToken) {
       navigate('/admin/login')
-    } else {
-      fetchProducts()
     }
   }, [navigate])
 
   useEffect(() => {
-    setCurrentPage(1)
-  }, [products.length])
+    const isAdmin = localStorage.getItem('isAdmin')
+    const adminToken = localStorage.getItem('adminToken')
+    if (isAdmin === 'true' && adminToken) {
+      fetchProducts(currentPage)
+    }
+  }, [currentPage, apiUrl])
 
   // Clear messages after 4 seconds
   useEffect(() => {
@@ -58,16 +57,21 @@ export default function AdminDashboard() {
     navigate('/admin/login')
   }
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     setIsLoadingProducts(true)
     setListError('')
 
     try {
-      const response = await fetch(`${apiUrl}/products`)
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(ITEMS_PER_PAGE),
+      })
+      const response = await fetch(`${apiUrl}/products?${params.toString()}`)
       const data = await response.json()
 
       if (!response.ok) {
         setProducts([])
+        setTotalProducts(0)
         setListError(data.message || 'Could not load medicines. Is the backend running?')
         return
       }
@@ -75,14 +79,17 @@ export default function AdminDashboard() {
       const productsArray = data.data || data
       if (Array.isArray(productsArray)) {
         setProducts(productsArray)
+        setTotalProducts(data.pagination?.total ?? productsArray.length)
       } else {
         setProducts([])
+        setTotalProducts(0)
         setListError('Unexpected response from server')
       }
     } catch (err) {
       console.error('Error fetching products:', err)
       setProducts([])
-      setListError('Could not load medicines. Run npm run dev from the project folder.')
+      setTotalProducts(0)
+      setListError('Could not load medicines. Check that the backend is deployed and VITE_API_URL is set.')
     } finally {
       setIsLoadingProducts(false)
     }
@@ -114,7 +121,7 @@ export default function AdminDashboard() {
     if (response.ok && data.success) {
       setMessage('Medicine added successfully!')
       setIsAddModalOpen(false)
-      fetchProducts()
+      fetchProducts(currentPage)
     } else {
       throw new Error(data.message || 'Failed to add medicine')
     }
@@ -155,7 +162,7 @@ export default function AdminDashboard() {
 
       if (response.ok && data.success) {
         setMessage('Medicine deleted successfully!')
-        fetchProducts()
+        fetchProducts(currentPage)
       } else {
         setListError(data.message || 'Failed to delete medicine')
       }
@@ -196,7 +203,7 @@ export default function AdminDashboard() {
 
     setEditingProduct(null)
     setMessage('Medicine updated successfully!')
-    fetchProducts()
+    fetchProducts(currentPage)
   }
 
   const handleLogout = () => {
@@ -228,8 +235,8 @@ export default function AdminDashboard() {
     return pages
   }
 
-  // Calculate dashboard statistics
-  const totalMedicines = products.length
+  // Calculate dashboard statistics (current page slice; totals use server count where available)
+  const totalMedicines = totalProducts || products.length
   const medicinesCategoryCount = products.filter(p => p.category === 'medicines').length
   const healthcareCategoryCount = products.filter(p => p.category === 'healthcare').length
   const labtestsCategoryCount = products.filter(p => p.category === 'lab-tests').length
@@ -375,7 +382,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedProducts.map((product) => {
+                        {products.map((product) => {
                           const productIdentifier = product._id || product.id || product.slug
 
                           return (

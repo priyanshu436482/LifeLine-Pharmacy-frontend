@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useSearch } from '../../context/SearchContext'
+import { useAuth } from '../../context/AuthContext'
 import './Navbar.css'
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const { cartCount } = useCart()
   const { searchQuery, setSearchQuery, setSelectedCategory } = useSearch()
+  const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
 
   const handleSearchChange = (e) => {
@@ -31,6 +34,7 @@ export default function Navbar() {
 
   const handleLinkClick = () => {
     setMenuOpen(false)
+    setProfileDropdownOpen(false)
     // Clear search and category when clicking main nav links
     setSearchQuery('')
     setSelectedCategory('all')
@@ -99,6 +103,47 @@ export default function Navbar() {
               <span className="navbar__cart-badge">{cartCount}</span>
             )}
           </Link>
+          {isAuthenticated ? (
+            <div className="navbar__profile-dropdown">
+              <button
+                type="button"
+                className="navbar__profile-trigger"
+                onClick={() => setProfileDropdownOpen((o) => !o)}
+              >
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt={user.first_name} className="navbar__avatar" />
+                ) : (
+                  <span className="navbar__avatar-initials">
+                    {user?.first_name?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="navbar__profile-name">{user?.first_name}</span>
+              </button>
+              {profileDropdownOpen && (
+                <div className="navbar__dropdown-menu">
+                  <div className="navbar__dropdown-userinfo">
+                    <strong>{user?.first_name} {user?.last_name}</strong>
+                    <span>{user?.email}</span>
+                  </div>
+                  <hr />
+                  <button
+                    onClick={() => {
+                      logout()
+                      setProfileDropdownOpen(false)
+                      setMenuOpen(false)
+                    }}
+                    className="navbar__dropdown-item logout"
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="navbar__link navbar__login-btn" onClick={handleLinkClick}>
+              Sign In
+            </Link>
+          )}
         </nav>
       </div>
     </header>
